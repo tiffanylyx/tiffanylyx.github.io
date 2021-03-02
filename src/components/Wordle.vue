@@ -45,21 +45,12 @@ var svg = d3.select("#Wordle")
 
 // Parse the Data
 d3.csv("sushi_wordcount.csv", function(data) {
-/*
+
 data.sort(function(b, a) {
   return a.count - b.count;
 });
-*/
-var tooltip = d3.select("#Wordle")
-    .append("div")
-    .style("width",'100px')
-    .style("position", "absolute")
-    .style("z-index", "10")
-    .style("visibility", "hidden")
-     .style("border", "solid")
-    .style("border-width", "1px")
-    .style("border-radius", "5px")
-    .style("padding", "10px")
+
+
 // Add X axis
 var x = d3.scaleLinear()
   .domain([0, 130])
@@ -100,11 +91,28 @@ svg.selectAll("mycircle")
     .attr("r", "7")
     .style("fill", "#6495ED")
     .attr("stroke", "black")
-    .on("mouseover", function(d){return tooltip.style("visibility", "visible").html('Word:'+d.word+'<br/>'+'Count:'+d.count+'  Poet:'+d.name),d3.select("#Wordle").on('mouseover', function(){console.log('hover-wordle-position',d3.mouse(this)); })})
+    .on("mouseover", function(d){return mouseover(d)})
     .on("mousemove", function(d){return tooltip.style("top",
     (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px").attr("data-html", "true").html('Word:'+d.word+'<br/>'+'Count:'+d.count+'  Poet:'+d.name)})
     .on("mouseout", function(){return tooltip.style("visibility", "hidden")})
 });
+var tooltip = d3.select("#Wordle")
+    .append("div")
+    .style("width",'100px')
+    .style("position", "absolute")
+    .style("z-index", "10")
+    .style("visibility", "hidden")
+     .style("border", "solid")
+    .style("border-width", "1px")
+    .style("border-radius", "5px")
+    .style("padding", "10px")
+let self = this
+function mouseover(d){
+	tooltip.style("visibility", "visible")
+	.html('Word:'+d.word+'<br/>'+'Count:'+d.count+'  Poet:'+d.name)
+	d3.select("#Wordle")
+	.on('mouseover', function(){self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'hover-wordle-position',d3.mouse(this),d.word,'\n']); })
+}
 }}
 }
 

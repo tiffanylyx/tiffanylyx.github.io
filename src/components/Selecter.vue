@@ -39,10 +39,10 @@ dropdownButton // Add a button
   .append('option')
   .text(function (d) { return d; }) // text showed in the menu
   .attr("value", function (d) { return d; }) 
-
+let self = this
 function dropchange(){
 	var newPoet = d3.select(this).property('value')
-	console.log("Button-Poet-Value",newPoet)
+	self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,"Button-Poet-Value",newPoet,'\n'])
 	Bus.$emit("Select_Poet", newPoet)
  }
 

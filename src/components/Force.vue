@@ -47,7 +47,7 @@ export default {
   },
     generateForce() {
 var data_place = []
-var width2 = 300,
+var width2 = 320,
     height2 = 300;
 this.width2 = width2
 this.height2 = height2
@@ -231,6 +231,7 @@ function check_in(data, place){
     }}
   return 'False'
 }
+//var select_place_from_force = []
 var linkElements = svg2.selectAll()
         .data(links)
         .enter()
@@ -241,8 +242,18 @@ self.nodeElements = svg2.selectAll()
         .data(nodes)
         .enter()
         .append('circle')
-        .attr('r', function(node){return 7*(place_count[node.name]+4)/(5+max_count)})
+        .attr('r', function(node){return 8*(place_count[node.name]+4)/(5+max_count)})
+        .attr('id', function(node){return node.name})
         .attr('fill', '#6495ED')
+        .on('mouseover',function(){var that = this
+          d3.select(that).attr("fill",'#BC8F8F')
+          self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'hover-force-position',d3.mouse(this),that.id,'\n'])
+          /*
+          select_place_from_force.push(that.id)
+          console.log(select_place_from_force)
+          */
+          Bus.$emit("Force_select_data", that.id)})
+        .on('mouseout', function(){return self.nodeElements.attr('fill', '#6495ED')})
         .call(d3.drag()
               .on('start', dragstarted)
               .on('drag', dragged)
@@ -257,7 +268,7 @@ var textElements = svg2.selectAll()
 
 const simulation = d3.forceSimulation()
           .force('link', d3.forceLink().distance(25))
-          .force('charge', d3.forceManyBody())
+          .force('charge', d3.forceManyBody(-100))
           .force('center', d3.forceCenter(width2 / 2, height2 / 2));
 
 simulation
@@ -269,8 +280,8 @@ simulation
         .attr('x2', d => d.target.x)
         .attr('y2', d => d.target.y)
   self.nodeElements
-    .attr('cx', node => node.x)
-    .attr('cy', node => node.y)
+    .attr('cx', function(d){return d.x = Math.max(5,Math.min(280,d.x))})
+    .attr('cy', function(d){return d.y = Math.max(5,Math.min(290,d.y))})
   textElements
     .attr('x', node => node.x)
     .attr('y', node => node.y)
@@ -284,13 +295,11 @@ function dragstarted(d) {
     if (!d3.event.active) simulation.alphaTarget(0.3).restart();
     d.fx = d.x;
     d.fy = d.y;
-    console.log('Drag-Force-Drag From',d.x,d.y)
 }
 
 function dragged(d) {
     d.fx = d3.event.x;
     d.fy = d3.event.y;
-    console.log('Drag-Force-Drag To',d.fx,d.fy)
 }
 
 function dragended(d) {
@@ -303,15 +312,16 @@ function check_equal2(place){return place.toString()==place2}})
 },
 select_new_point(){
   var data = this.Hist_select_data
-  this.nodeElements.attr('fill', function(d){return isSelectedByHist(d)})
-function isSelectedByHist(a){
+  this.nodeElements.attr('fill',function(d){return isSelectedByHist(d,data)
+function isSelectedByHist(a,data){
   for(var i=0,len=data.length;i<len;i++){
     var place = data[i].properties.name
       if(a.name==place){
-        console.log('in')
-        return '#BC8F8F'}
+        return "#BC8F8F"}
     }
-  return '#6495ED'}
+    return "#6495ED"
+  }
+})
 
 }
 }}

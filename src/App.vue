@@ -1,8 +1,11 @@
-/* eslint-disable */
+c/* eslint-disable */
 <template>
   <div id="main" style="width:1200px;">
-    <div id="Selecter" style = "width:1200px">
+    <div id="Selecter" style = "width:1150px;float:left">
       <Selecter/>
+    </div>
+    <div id="Button" style = "width:50px;float:left">
+      <Button/>
     </div>
     <div id="poem" style="width:300px;float: left">
       <div id = 'Wordle'>
@@ -28,16 +31,18 @@ import Selecter from './components/Selecter.vue'
 import Map from './components/Map.vue'
 import Hist from './components/Hist.vue'
 import Force from './components/Force.vue'
-//import Wordle from './components/Wordle.vue'
+import Wordle from './components/Wordle.vue'
+import Button from './components/Button.vue'
 
 export default {
   name: 'App',
   components: {
+    Button,
     Selecter,
     Map,
     Hist,
     Force,
-    //Wordle
+    Wordle
   }
 }
 </script>

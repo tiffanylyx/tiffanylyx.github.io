@@ -18,6 +18,7 @@ export default {
     return {
       select_data:'',
       Hist_select_data:'',
+      Force_select_data:'',
       myCircle:'',
       myLink:'',
       svg:''
@@ -37,8 +38,10 @@ export default {
     Bus.$emit("Map_age", this.select_value),
     Bus.$on("Hist_select_data", (val) => {
       this.Hist_select_data=val;
-      this.select_new_point()})},
-
+      this.select_new_point()}),
+    Bus.$on("Force_select_data", (val) => {
+      this.Force_select_data=val;
+      this.select_new_point_Force()})},
     generateArc() {
       const width = 600;
       const height = 600;
@@ -68,7 +71,7 @@ export default {
       .on("zoom",zoomed) 
 
   //svg.call(zoom); //调用缩放拖拽功能
- 
+self.GLOBAL.Log_file.push(['Start_timestamp',new Date().getTime()/1000,'\n'])
 //编写 平移函数
 function reset() {
     
@@ -81,7 +84,7 @@ function reset() {
 // 缩放函数
 function zoomed() {
     const transform = d3.event.transform; //识别鼠标事件
-    console.log('Zoom-Map-Value',transform)
+    self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'Zoom-Map-Value',transform,'\n'])
     group.attr("transform", transform); //将缩放结果传给g
     var k = Math.sqrt(100 / projection.scale()); //修改地图尺寸
     group.attr("stroke-width", 1 / k); //修改对应的属性
@@ -160,7 +163,7 @@ var link1s = [
       .on("end", updata_chart)
     )
     */
-var allGroup = ['none',"select area", "zoom1", "show point info"]
+var allGroup = ['none',"select area", "zoom", "show point info"]
 var dropdownButton = d3.select("#map")
   .append('select')
   .on("change", dropchange)
@@ -183,8 +186,17 @@ var g4 = group.append("g").attr("id","for_brush"); //
 
 function dropchange(){
   var newCereal = d3.select(this).property('value')
-  if (newCereal=='zoom1'){
+  self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'newCereal',newCereal,'\n'])
+
+  
+  if (newCereal=='zoom'){
     svg.call(zoom)
+     g4.style("display","none")
+      self.myCircle.on("mouseover", function(){return null})
+    .on("mousemove", function(){return null})
+    .on("mouseout", function(){return null})
+    d3.select("#map")
+    .on('mouseover', function(){return null})
   }
   else if (newCereal=='select area'){
     svg.on('.zoom', null)
@@ -200,16 +212,12 @@ function dropchange(){
       g4.style("display","none")
       self.myCircle.on("mouseover", function(d){return tooltip.style("visibility", "visible").text(d.properties.name+','+d.properties.age+'岁'),
       d3.select(this).attr("fill","#BC8F8F"),
-      d3.select("#map").on('mousemove', function()
-    {console.log('Hover-Map-Position',d3.mouse(this)); });})
+      d3.select("#map")
+  .on('mouseover', function(){self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'hover-map-position',d3.mouse(this),d.properties.name,'\n']);})})
     .on("mousemove", function(d){return tooltip.style("top",
     (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px").text(d.properties.name+','+d.properties.age+'岁');})
     .on("mouseout", function(){return tooltip.style("visibility", "hidden"),d3.select(this).transition().duration(500).attr("fill","#6495ED");})
     }
-    /*
-  else if ((newCereal='zoom1')) {
-self.svg.call(zoom)
-  }*/
 }
 
   function updata_chart(){
@@ -220,8 +228,8 @@ self.svg.call(zoom)
   function update_data() {
     var select_data = []
     var extent = d3.event.selection
-    self.myCircle.classed("selected_first", function(d){ return isBrushed(extent, projection(d.geometry.coordinates)[0],projection(d.geometry.coordinates)[1]) } )
-    console.log('Brush-Map-Position',extent)
+    self.myCircle.classed("selected_first", function(d){ return isBrushed(extent, projection(d.geometry.coordinates)[0],projection(d.geometry.coordinates)[1]) }) 
+    self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'Brush-Map-Position',extent[0],extent[1],'\n'])
     for(i=0, len=places.features.length-1; i<len; i++){
       var d = places.features[i]
       if(isBrushed(extent, projection(d.geometry.coordinates)[0],projection(d.geometry.coordinates)[1]))
@@ -241,24 +249,28 @@ function isBrushed(brush_coords, cx, cy) {
 
   })},
   
-  select_new_point(){
+select_new_point(){
     var data = this.Hist_select_data
-    this.myCircle.classed("selected_second", function(d){return isSelectedByHist(d)})
+    this.myCircle.classed("selected_second", function(d){return isSelectedByHist(d,data)})
     //this.myLink.style("stroke",function(d) {return LinkisSelectedByHist(d)})
     //this.myLink.style("opacity",function(d) {return LinkisSelectedByHist_O(d)})
     //this.myLink.style("stroke-width",function(d) {return LinkisSelectedByHist_S(d)})
     
-function isSelectedByHist(a){
+function isSelectedByHist(a,data){
   for(var i=0,len=data.length;i<len;i++){
-    var geo = data[i].geometry.coordinates
+    var geo = data[i].properties.name
     var age_select = data[i].properties.age
-    if (a.geometry.coordinates==geo){
+    if (a.properties.name==geo){
       if(a.properties.age==age_select){
         return (1==1)
       }}}
   return (1==0)}
+},
+select_new_point_Force(){
+  var data = this.Force_select_data
+  this.myCircle.classed("selected_second", function(d){return d.properties.name==data})
+}
 }}
-};
 </script>
 <style>
 
