@@ -1,14 +1,22 @@
 /* eslint-disable */
 <template>
-  <div id="map">
-    <p>
+  <div>
+    <div style = "width:380px;height:44px;float:left">
       <h4>Footprint</h4>
+    </div>
+    <div id = 'pos'  style = "width:120px;height:24px;float:left">
+      <p>  </p>
+
+    </div>
+  <div id="map">
   </div>
+</div>
 </template>
 
 <script>
 import * as d3 from "d3";
 import * as topojson from "topojson"
+import * as d3Chromatic from 'd3-scale-chromatic';
 //import Vue from 'vue';
 import Bus from '../assets/bus.js';
 //var msgCenter = new Vue()
@@ -16,12 +24,16 @@ export default {
   name: "App",
   data() {
     return {
+      place_color:'',
       select_data:'',
       Hist_select_data:'',
       Force_select_data:'',
       myCircle:'',
       myLink:'',
-      svg:''
+      svg:'',
+      hover_period:'',
+      g4:'',
+      zoom_value:[]
     };
   },
   //created() {
@@ -35,43 +47,71 @@ export default {
   },
   methods: {
     handle: function () {
+    Bus.$on("hover_period", (val) => {
+      this.hover_period=val;
+      this.show_period()}),
     Bus.$emit("Map_age", this.select_value),
     Bus.$on("Hist_select_data", (val) => {
       this.Hist_select_data=val;
       this.select_new_point()}),
+    Bus.$on("change", () => {
+      this.GLOBAL.Visual_state['timestamp'] = new Date().getTime()/1000
+      this.postVisual({'name':this.GLOBAL.Visual_state})}),    
     Bus.$on("Force_select_data", (val) => {
       this.Force_select_data=val;
       this.select_new_point_Force()})},
     generateArc() {
-      const width = 600;
-      const height = 600;
+      const width = 500;
+      const height = 640;
 
       const projection = d3.geoAlbers()
-          .center([0, 30])
+          .center([2, 29.6])
           .rotate([-110, 0])
           .parallels([20, 60])
           .translate([width / 2, height / 2])
-          .scale(1370)
+          .scale(1500)
 
 
       const path = d3.geoPath()
           .projection(projection)
           .pointRadius(2);
+      var dropdownButton = d3.select("#pos")
+      .append('select').attr("x","100px")
       const svg = d3
         .select("#map")
         .append("svg")
         .attr("width", width)
         .attr("height", height);
       let self = this
+      d3.csv("place_senti.csv",function(data){
+        self.place_color = data
+      })
       d3.json("sushi_map.json", function(error, point) {
+
       var subunits = topojson.feature(point, point.objects.china),
       places = topojson.feature(point, point.objects.places);
+  var myColor = d3.scaleSequential()
+    .domain([0.79,0.45])
+    .interpolator(d3Chromatic.interpolatePiYG);
+  function choose_color(place){
+    var name = place.properties.name
+    var res = "rgb(100,149,237)"
+    for (var i = 0;i<129; i++) {
+      var sli = self.place_color[i]
+      if(name == sli['place']){
+        res = myColor(sli['senti'])
+      }
+    }
+    return res
+  }
+
   var zoom = d3.zoom()
       .scaleExtent([0.5,3])//用于设置最小和最大的缩放比例
       .on("zoom",zoomed) 
-
-  //svg.call(zoom); //调用缩放拖拽功能
-self.GLOBAL.Log_file.push(['Start_timestamp',new Date().getTime()/1000,'\n'])
+self.GLOBAL.New_time = new Date().getTime()/1000
+self.GLOBAL.Old_time = self.GLOBAL.New_time
+self.GLOBAL.Log_file.push(['Start_timestamp',self.GLOBAL.New_time,'\n'])
+self.postInteraction({'name':self.GLOBAL.Log_file})
 //编写 平移函数
 function reset() {
     
@@ -84,10 +124,16 @@ function reset() {
 // 缩放函数
 function zoomed() {
     const transform = d3.event.transform; //识别鼠标事件
-    self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'Zoom-Map-Value',transform,'\n'])
+    self.GLOBAL.New_time = new Date().getTime()/1000
+      self.zoom_value.push(['timestamp',new Date().getTime()/1000,'Zoom-Map-Value',transform,'\n'])
+    self.GLOBAL.Old_time = self.GLOBAL.New_time
+    
+    
+    //self.postMsg({'name':self.GLOBAL.Log_file})
     group.attr("transform", transform); //将缩放结果传给g
     var k = Math.sqrt(100 / projection.scale()); //修改地图尺寸
     group.attr("stroke-width", 1 / k); //修改对应的属性
+    return transform
 }
 
     var group = svg.append("g").attr("id","group").datum({
@@ -95,9 +141,9 @@ function zoomed() {
     y: 0
   }).on("click", reset);  //定义点击事件
       var g1 = group.append("g").attr("id","for_path"); //新增组，用于存储不同对象
-      var g2 = group.append("g").attr("id","for_circle");
-      var g3 = group.append("g").attr("id","for_line").attr("pointer-events","none");
 
+      var g3 = group.append("g").attr("id","for_line").attr("pointer-events","none");
+      var g2 = group.append("g").attr("id","for_circle");
 
   g1.selectAll(".subunit")
       .data(subunits.features)
@@ -106,7 +152,14 @@ function zoomed() {
       .attr("d", path)
       .attr('stroke','#222')
       .attr('stroke-width','1px')
-      .attr('fill','#ddd');
+      .attr('fill',function(d){var p = d.properties.name
+        if((p=='山西省')|(p=='陕西省')|(p=='河南省')|(p=='河北省')|(p=='北京市')|
+          (p=='天津市')|(p=='河南省')|(p=='山东省')|(p=='江苏省')|(p=='浙江省')|
+          (p=='上海市')|(p=='湖南省')|(p=='湖北省')|(p=='江西省')|(p=='重庆市')|
+          (p=='四川省')|(p=='广西壮族自治区')|(p=='海南省')|(p=='广东省')|(p=='贵州省')|
+          (p=='福建省')|(p=='安徽省')){return '#ccc'}
+        else{return '#fff'}
+        });
 
 // 
 var link1s = [
@@ -126,14 +179,26 @@ var link1s = [
     g3.append('svg:defs').append('svg:marker')
         .attr('id', 'end-arrow')
         .attr('viewBox', '0 -5 8 8')
-        .attr('refX', 8)
-        .attr('markerWidth', 3)//箭头参数适当按需调整
-        .attr('markerHeight', 3)
+        .attr('refX', 5)
+        .attr('markerWidth', 2.5)//箭头参数适当按需调整
+        .attr('markerHeight', 2.5)
         .attr('orient', 'auto')
         .append('svg:path')
         .attr('d', 'M0,-5L10,0L0,5')//绘制箭头形状
         .attr('fill', '#483D8B');
   // 加label
+
+  self.myLink = g3.selectAll("myPath")
+
+      .data(link1s)
+      .enter()
+      .append("path")
+        .attr("d", function(d){ return path(d)})
+        .style("fill", "none")
+        .style("stroke", "#483D80")
+        .style("stroke-width", 2)
+        .style("opacity",0.4)
+        .attr("marker-end", "url(#end-arrow)")
   self.myCircle = g2.selectAll(".place-point")
       .data(places.features)
     .enter()
@@ -142,31 +207,21 @@ var link1s = [
       .attr("transform", function(d) { return "translate(" + projection(d.geometry.coordinates) + ")"; })
       .attr("x", function(d) { return d.geometry.coordinates[0] > -1 ? 6 : -6; })
       .attr("dy", ".35em")
-      .attr("r", function(d) { return d.properties.age/8; })
-      .attr("fill", "#6495ED")
+      .attr("r", 4.3)//function(d) { return d.properties.age/10; })
+      .attr("fill", function(d){return choose_color(d)})
       .attr("opacity",0.7)
-  self.myLink = g3.selectAll("myPath")
-      .data(link1s)
-      .enter()
-      .append("path")
-        .attr("d", function(d){ return path(d)})
-        .style("fill", "none")
-        .style("stroke", "#483D8B")
-        .style("stroke-width", 1.6)
-        .style("opacity",0.5)
-        .attr("marker-end", "url(#end-arrow)")
   self.svg = svg
-  /*
-  svg
-    .call( d3.brush()                 // Add the brush feature using the d3.brush function
-      .extent( [ [0,0], [width,height] ] ) // initialise the brush area: start at 0,0 and finishes at width,height: it means I select the whole graph area
-      .on("end", updata_chart)
-    )
-    */
+  var se = []
+for (i = 0, len = places.features.length; i < len; i++) {
+  var d = places.features[i]
+  se.push({'coordinates':projection(d.geometry.coordinates),'color':choose_color(d)})
+}
+self.GLOBAL.Map_state.push({'Map':se})
+self.GLOBAL.Visual_state['Map']['overall'] = se
+//Bus.$emit("change", self.GLOBAL.Visual_state)
+
 var allGroup = ['none',"select area", "zoom", "show point info"]
-var dropdownButton = d3.select("#map")
-  .append('select')
-  .on("change", dropchange)
+dropdownButton.on("change", dropchange)
 
 // add the options to the button
 dropdownButton // Add a button
@@ -180,16 +235,16 @@ dropdownButton // Add a button
 var tooltip = d3.select("body")
     .append("div")
     .style("position", "absolute")
-    .style("z-index", "10")
+    .style("z-index", "100")
     .style("visibility", "hidden")
 var g4 = group.append("g").attr("id","for_brush"); //
-
+self.g4 = g4
 function dropchange(){
   var newCereal = d3.select(this).property('value')
-  self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'newCereal',newCereal,'\n'])
-
-  
   if (newCereal=='zoom'){
+    self.zoom_value = []
+    //self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'newCereal',newCereal,'\n'])
+    //self.postInteraction({'name':self.GLOBAL.Log_file})
     svg.call(zoom)
      g4.style("display","none")
       self.myCircle.on("mouseover", function(){return null})
@@ -200,6 +255,11 @@ function dropchange(){
   }
   else if (newCereal=='select area'){
     svg.on('.zoom', null)
+    self.GLOBAL.Log_file.push(self.zoom_value[self.zoom_value.length - 1])
+    self.postInteraction({'name':self.GLOBAL.Log_file})
+
+    //self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'newCereal',newCereal,'\n'])
+    //self.postInteraction({'name':self.GLOBAL.Log_file})
     g4.style("display","block")
   g4
     .call( d3.brush()                 // Add the brush feature using the d3.brush function
@@ -210,17 +270,34 @@ function dropchange(){
   else if ((newCereal=='show point info'))
     {svg.on('.zoom', null)
       g4.style("display","none")
-      self.myCircle.on("mouseover", function(d){return tooltip.style("visibility", "visible").text(d.properties.name+','+d.properties.age+'岁'),
-      d3.select(this).attr("fill","#BC8F8F"),
+    self.GLOBAL.Log_file.push(self.zoom_value[self.zoom_value.length - 1])
+    self.postInteraction({'name':self.GLOBAL.Log_file})
+
+    //self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'newCereal',newCereal,'\n'])
+    //self.postInteraction({'name':self.GLOBAL.Log_file})
+      self.myCircle.on("click", function(d){d3.select(this).attr("fill","#BC8F8F")
+      self.GLOBAL.New_time = new Date().getTime()/1000
+      if ((self.GLOBAL.New_time-self.GLOBAL.Old_time)>1){
+      self.GLOBAL.Visual_state['Map']['visit'].push(d),
+      Bus.$emit("change", self.GLOBAL.Visual_state),
       d3.select("#map")
-  .on('mouseover', function(){self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'hover-map-position',d3.mouse(this),d.properties.name,'\n']);})})
-    .on("mousemove", function(d){return tooltip.style("top",
-    (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px").text(d.properties.name+','+d.properties.age+'岁');})
-    .on("mouseout", function(){return tooltip.style("visibility", "hidden"),d3.select(this).transition().duration(500).attr("fill","#6495ED");})
+  .on('click', function(){self.GLOBAL.Log_file.push(['timestamp',self.GLOBAL.New_time,'hover-map-position',d3.mouse(this),d.properties.name,'\n']),
+    self.postInteraction({'name':self.GLOBAL.Log_file})
+    self.GLOBAL.Old_time = self.GLOBAL.New_time
+    //var PredictPromise = self.getPredict()
+    //PredictPromise.then(function(data){self.GLOBAL.Get_message = data.msg,console.log('self.GLOBAL.Get_message',self.GLOBAL.Get_message)})
+
+
+  })}
+  return tooltip.style("visibility", "visible").style("top",(d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px").text(d.properties.name+','+d.properties.age+'岁')
+})
+    .on("mouseout", function(){return tooltip.style("visibility", "hidden"),d3.select(this).transition().duration(500).attr("fill", function(d){return choose_color(d)});})
     }
 }
 
   function updata_chart(){
+    self.myCircle.attr("opacity",0.7)
+    self.myLink.style("opacity",0.4)
     var select_data = update_data()
   Bus.$emit("Map_select_data", select_data)
   }
@@ -228,8 +305,14 @@ function dropchange(){
   function update_data() {
     var select_data = []
     var extent = d3.event.selection
+    self.myCircle.attr("fill", function(d){return choose_color(d)})
     self.myCircle.classed("selected_first", function(d){ return isBrushed(extent, projection(d.geometry.coordinates)[0],projection(d.geometry.coordinates)[1]) }) 
-    self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'Brush-Map-Position',extent[0],extent[1],'\n'])
+    self.GLOBAL.New_time = new Date().getTime()/1000
+    if((self.GLOBAL.New_time-self.GLOBAL.Old_time)>1){
+    self.GLOBAL.Log_file.push(['timestamp',self.GLOBAL.New_time,'Brush-Map-Position',extent[0],extent[1],'\n'])
+    self.postInteraction({'name':self.GLOBAL.Log_file})
+    self.GLOBAL.Old_time = self.GLOBAL.New_time
+    //console.log('r',self.GLOBAL.Get_message)
     for(i=0, len=places.features.length-1; i<len; i++){
       var d = places.features[i]
       if(isBrushed(extent, projection(d.geometry.coordinates)[0],projection(d.geometry.coordinates)[1]))
@@ -247,7 +330,7 @@ function isBrushed(brush_coords, cx, cy) {
       return x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;    // This return TRUE or FALSE depending on if the points is in the selected area
   }
 
-  })},
+  }})},
   
 select_new_point(){
     var data = this.Hist_select_data
@@ -269,7 +352,59 @@ function isSelectedByHist(a,data){
 select_new_point_Force(){
   var data = this.Force_select_data
   this.myCircle.classed("selected_second", function(d){return d.properties.name==data})
-}
+},
+show_period(){
+  this.g4.style("display","none")
+  let self = this
+  var myColor = d3.scaleSequential()
+    .domain([0.79,0.45])
+    .interpolator(d3Chromatic.interpolatePiYG);
+  function choose_color(place){
+    var name = place.properties.name
+    var res = "rgb(100,149,237)"
+    for (var i = 0;i<129; i++) {
+      var sli = self.place_color[i]
+      if(name == sli['place']){
+        res = myColor(sli['senti'])
+      }
+    }
+    return res
+  }
+
+  function choose_id(place){
+    var name = place.properties.name
+    var res = 5
+    for (var i = 0;i<129; i++) {
+      var sli = self.place_color[i]
+      if(name == sli['place']){
+        var senti = sli['senti']
+        if(senti<0.52){
+          res = 0
+        }
+        else if ((senti>0.51)&(senti<0.59)){res = 1}
+        else if ((senti>0.58)&(senti<0.65)){res = 2}
+        else if ((senti>0.64)&(senti<0.72)){res = 3}
+        else if ((senti>0.71)){res = 4}
+      }
+    }
+    return res
+  }
+  this.myCircle.attr("fill", function(d){return choose_color(d)})
+  this.myCircle.attr("opacity",function(d){
+    var id = choose_id(d)
+    if(self.hover_period==6){
+       return 0.7
+    }
+    if(id==self.hover_period){
+      return 1
+    }
+    else{return 0}
+  })
+  this.myLink.style("opacity",function(){
+    if(self.hover_period==6){ return 0.4}
+    else{return 0}
+  })}
+
 }}
 </script>
 <style>
@@ -282,7 +417,7 @@ select_new_point_Force(){
   opacity: 1;
   stroke: black;
   stroke-width: 1px;
-  fill: #BC8F8F;
+  fill: orange;
 }
 .subunit.SCT { fill: #ddc; }
 .subunit.WLS { fill: #cdd; }
@@ -333,6 +468,10 @@ text {
 .hover {
     fill: yellow;   
 }
+.desplegable {
+        left: 10px;
+        top: 5px;
+    }
 /*
 #sliderContainer {
     text-align: center;

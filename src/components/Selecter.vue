@@ -1,7 +1,11 @@
 /* eslint-disable */
 <template>
   <div id="Selecter">
+  <div id="header">
     <h4>Select The Poet</h4>
+  </div>
+  <div id="button">
+  </div>
   </div>
 </template>
 
@@ -27,7 +31,7 @@ export default {
   methods: {
     choose_poet() {
 var allPoet = ['Su Shi',"Huang Tingjian", "Xin Qiji", "Ouyang Xiu"]
-var dropdownButton = d3.select("#Selecter")
+var dropdownButton = d3.select("#button")
   .append('select')
   .on("change", dropchange)
 
@@ -43,6 +47,7 @@ let self = this
 function dropchange(){
 	var newPoet = d3.select(this).property('value')
 	self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,"Button-Poet-Value",newPoet,'\n'])
+  self.postMsg({'name':self.GLOBAL.Log_file})
 	Bus.$emit("Select_Poet", newPoet)
  }
 

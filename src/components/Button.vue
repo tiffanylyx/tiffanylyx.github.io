@@ -10,10 +10,13 @@
 //import * as d3 from "d3";
 //import Bus from '../assets/bus.js';
 
+
+
 export default {
   name: "App",
   data(){
     return{
+      serverResponse: 'resp'
     }
   },
   //created(){
@@ -39,7 +42,10 @@ function download_txt() {
 }
 
 document.getElementById('test').addEventListener('click', download_txt);
+},
+getData(){
+this.getMsg()
+this.postInteraction({'name':this.GLOBAL.Log_file})
+}}}
 
-}   	
-}}
 </script>

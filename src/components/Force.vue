@@ -2,7 +2,7 @@
 <template>
   <div id="force">
     <p>
-      <h4>Places connection</h4>
+      <h4>  Places connection</h4>
   </div>
 </template>
 
@@ -47,8 +47,8 @@ export default {
   },
     generateForce() {
 var data_place = []
-var width2 = 320,
-    height2 = 300;
+var width2 = 400,
+    height2 = 285;
 this.width2 = width2
 this.height2 = height2
 const svg2 = d3.select("#force").append("svg")
@@ -107,10 +107,7 @@ self.nodeElements = svg2.selectAll()
         .append('circle')
         .attr('r', 5)
         .attr('fill', 'red')
-        .call(d3.drag()
-              .on('start', dragstarted)
-              .on('drag', dragged)
-              .on('end', dragended));
+
 var textElements = svg2.selectAll()
   .data(nodes)
   .enter().append('text')
@@ -142,7 +139,7 @@ simulation
 simulation
     .force('link')
     .links(links);
-
+/*
 function dragstarted(d) {
     if (!d3.event.active) simulation.alphaTarget(0.3).restart();
     d.fx = d.x;
@@ -159,6 +156,7 @@ function dragended(d) {
     d.fx = null;
     d.fy = null;
 }
+*/
 })},
 updateForce(){
   let self = this
@@ -231,6 +229,7 @@ function check_in(data, place){
     }}
   return 'False'
 }
+var visited = []
 //var select_place_from_force = []
 var linkElements = svg2.selectAll()
         .data(links)
@@ -246,18 +245,19 @@ self.nodeElements = svg2.selectAll()
         .attr('id', function(node){return node.name})
         .attr('fill', '#6495ED')
         .on('mouseover',function(){var that = this
-          d3.select(that).attr("fill",'#BC8F8F')
-          self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,'hover-force-position',d3.mouse(this),that.id,'\n'])
-          /*
-          select_place_from_force.push(that.id)
-          console.log(select_place_from_force)
-          */
+          d3.select(that).attr("fill",'orange')
+          self.GLOBAL.New_time = new Date().getTime()/1000
+          if((self.GLOBAL.New_time-self.GLOBAL.Old_time)>1){
+          visited.push(that)
+          self.GLOBAL.Visual_state['Force']['visited'] = visited
+          Bus.$emit("change", self.GLOBAL.Visual_state)
+          self.GLOBAL.Log_file.push(['timestamp',self.GLOBAL.New_time,'hover-force-position',d3.mouse(this),that.id,'\n'])
+          self.postInteraction({'name':self.GLOBAL.Log_file})
+          self.GLOBAL.Old_time = self.GLOBAL.New_time}
           Bus.$emit("Force_select_data", that.id)})
         .on('mouseout', function(){return self.nodeElements.attr('fill', '#6495ED')})
-        .call(d3.drag()
-              .on('start', dragstarted)
-              .on('drag', dragged)
-              .on('end', dragended));
+
+
 var textElements = svg2.selectAll()
   .data(nodes)
   .enter().append('text')
@@ -280,16 +280,41 @@ simulation
         .attr('x2', d => d.target.x)
         .attr('y2', d => d.target.y)
   self.nodeElements
-    .attr('cx', function(d){return d.x = Math.max(5,Math.min(280,d.x))})
-    .attr('cy', function(d){return d.y = Math.max(5,Math.min(290,d.y))})
+    .attr('cx', function(d){return d.x = Math.max(5,Math.min(self.width2-4,d.x))})
+    .attr('cy', function(d){return d.y = Math.max(5,Math.min(self.height2-4,d.y))})
   textElements
     .attr('x', node => node.x)
     .attr('y', node => node.y)
 })
+    .on('end',() => {
+      visited = []
+      var se = []
+for (i = 0, len = nodes.length; i < len; i++) {
+  var d =nodes[i]
+  se.push({'coordinates':[d.x,d.y],'r':8*(place_count[d.name]+4)/(5+max_count),'name':d.name})
+}
+self.GLOBAL.Force_state.push({'Force':se})
+self.GLOBAL.Visual_state['Force']['overall'] = se
+self.GLOBAL.Visual_state['Force']['visit'] = []
+Bus.$emit("change", self.GLOBAL.Visual_state)
+    })
 
 simulation
     .force('link')
     .links(links);
+
+
+/*
+console.log(nodes[1])
+console.log(self.nodeElements)
+var se = []
+for (i = 0, len = self.nodeElements._groups.length; i < len; i++) {
+  var d =self.nodeElements._groups[0][i].__data__
+  console.log(i,d,d.x,d.id)
+  se.push({'coordinates':[d.x,d.y],'r':8*(place_count[d.name]+4)/(5+max_count),'name':d.name})
+}
+self.GLOBAL.Visual_state.push({'Force':se})
+console.log(self.GLOBAL.Visual_state)
 
 function dragstarted(d) {
     if (!d3.event.active) simulation.alphaTarget(0.3).restart();
@@ -307,6 +332,7 @@ function dragended(d) {
     d.fx = null;
     d.fy = null;
 }
+*/
 function check_equal1(place){return place.toString()==place1}
 function check_equal2(place){return place.toString()==place2}})
 },
@@ -317,7 +343,7 @@ function isSelectedByHist(a,data){
   for(var i=0,len=data.length;i<len;i++){
     var place = data[i].properties.name
       if(a.name==place){
-        return "#BC8F8F"}
+        return 'orange'}
     }
     return "#6495ED"
   }

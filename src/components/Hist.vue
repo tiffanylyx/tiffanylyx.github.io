@@ -2,7 +2,7 @@
 <template>
   <div id="hist">
      <p>
-      <h4>Distribution of visit against age</h4>
+      <h4>  Distribution of visit against age</h4>
   </div>
 </template>
 
@@ -46,9 +46,9 @@ export default {
       var max = 67;
       var domain = [min,max];
       var a = [19,19,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,24,24,24,24,24,24,24,24,24,24,25,25,25,25,25,25,26,26,26,26,26,26,26,26,26,26,26,26,26,27,27,27,27,27,27,27,27,27,27,27,27,27,27,28,28,28,28,28,28,28,28,28,28,28,28,29,29,29,29,29,30,30,30,30,30,31,31,31,31,31,31,31,31,32,32,32,32,32,32,32,32,33,35,35,35,35,35,35,35,35,35,35,35,35,35,35,36,36,36,36,36,36,36,36,36,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,41,41,41,41,41,41,41,41,41,41,41,42,42,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,45,45,45,45,45,45,45,45,45,45,45,45,46,46,46,46,46,46,46,46,46,46,47,47,47,47,47,47,47,47,47,47,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,53,53,53,53,53,53,53,53,53,53,53,53,53,55,55,55,55,55,55,55,55,55,55,55,55,56,56,56,56,56,56,56,56,56,56,57,57,57,57,57,57,57,57,57,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,58,59,59,59,59,61,61,61,61,61,61,61,61,61,61,62,62,64,64,64,64,64,64,64,64,64,64,64,64,64,64,64,64,64,64,64,65,65,65,65,65,65,65,65,65,65,65,65,65,65,65,65,65,65,65,65]
-      var margin = { top: 10, right: 10, bottom: 30, left: 20 },
-        width1 = 320 - margin.left - margin.right
-      this.height1 = 270 - margin.top - margin.bottom;
+      var margin = { top: 0, right: 10, bottom: 30, left: 20 },
+        width1 = 400 - margin.left - margin.right
+      this.height1 = 280 - margin.top - margin.bottom;
       const svg1 = d3
         .select("#hist")
         .append("svg")
@@ -112,6 +112,7 @@ for(var i=0, len=this.data.length-1; i<len; i++){
 var svg1 = this.svg
 var x = this.x
 var y = this.y
+var visited = []
 // The number of bins 
 var nBin=24
 var histogram = d3
@@ -147,17 +148,32 @@ this.u = svg1
   .attr("id",function(d,i){
     return [19+i*(67-19)/24,i]
   })
+var se = []
+for (i = 0, len = bins.length; i < len; i++) {
+  d = bins[i]
+  se.push({'coordinates':[x(d.x0),y(d.length)]})
+}
+self.GLOBAL.Visual_state['Hist']['overall'] = se
+self.GLOBAL.Visual_state['Hist']['visit'] = []
+//Bus.$emit("change", self.GLOBAL.Visual_state)
 var select_age_by_column = []
 this.u.on("click",function(){
     var that = this
     var age = that.id.split(",")[0]
     var index = that.id.split(",")[1]
-    self.GLOBAL.Log_file.push(['timestamp',new Date().getTime()/1000,"click_hist_index",index,'\n'])
+    self.GLOBAL.New_time = new Date().getTime()/1000
+    if((self.GLOBAL.New_time-self.GLOBAL.Old_time)>1){
+    visited.push([age,index])
+    self.GLOBAL.Visual_state['Hist']['visit'] = visited
+    Bus.$emit("change", self.GLOBAL.Visual_state)
+    self.GLOBAL.Log_file.push(['timestamp',self.GLOBAL.New_time,"click-hist-index",index,'\n'])
+    self.postInteraction({'name':self.GLOBAL.Log_file})
+    self.GLOBAL.Old_time = self.GLOBAL.New_time}
     select_age_by_column.push(age)
     d3.select(that)
     .transition()
     .duration(500)
-    .attr("fill", "#BC8F8F");
+    .attr("fill", "orange");
 var select_data_from_hist = []
 for(i=0, len=all_data.length-1; i<len; i++){
   d = parseInt(all_data[i].properties.age)
