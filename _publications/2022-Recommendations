@@ -1,0 +1,13 @@
+---
+title: "	Diverse interaction recommendation for public users exploring multi-view visualization using deep learning"
+collection: publications
+category: conferences
+permalink: /publication/2022-Recommendations
+excerpt: 'This paper is about fixing template issue #693.'
+date: 2022-10
+venue: 'IEEE Vis 2022'
+paperurl: 'https://ieeexplore.ieee.org/abstract/document/9903596'
+citation: 'Li, Y., Qi, Y., Shi, Y., Chen, Q., Cao, N., & Chen, S. (2022). Diverse interaction recommendation for public users exploring multi-view visualization using deep learning. IEEE Transactions on Visualization and Computer Graphics, 29(1), 95-105.'
+---
+
+The contents above will be part of a list of publications, if the user clicks the link for the publication than the contents of section will be rendered as a full page, allowing you to provide more information about the paper for the reader. When publications are displayed as a single page, the contents of the above "citation" field will automatically be included below this section in a smaller font.
